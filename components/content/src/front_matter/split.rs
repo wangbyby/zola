@@ -1,9 +1,11 @@
+use std::fmt::Write;
 use std::path::Path;
 
 use errors::{bail, Context, Result};
 use libs::once_cell::sync::Lazy;
 use libs::regex::Regex;
-use libs::{serde_yaml, toml};
+use libs::{serde_json, serde_yaml, toml};
+use serde::Serialize;
 
 use crate::front_matter::page::PageFrontMatter;
 use crate::front_matter::section::SectionFrontMatter;
@@ -20,9 +22,11 @@ static YAML_RE: Lazy<Regex> = Lazy::new(|| {
         .unwrap()
 });
 
+#[derive(Debug)]
 pub enum RawFrontMatter<'a> {
     Toml(&'a str),
     Yaml(&'a str),
+    Markdown { title: &'a str },
 }
 
 impl RawFrontMatter<'_> {
@@ -36,6 +40,15 @@ impl RawFrontMatter<'_> {
                 Ok(d) => d,
                 Err(e) => bail!("YAML deserialize error: {:?}", e),
             },
+            RawFrontMatter::Markdown { title } => {
+                let mut json = String::with_capacity(32);
+                json.write_str("{ \"title\": ").unwrap();
+                json.write_str(&format!("{:?}", title)).unwrap();
+                json.write_str("}").unwrap();
+                dbg!(&json);
+                let tmp = serde_json::from_str(&json);
+                tmp?
+            }
         };
         Ok(f)
     }
@@ -43,12 +56,20 @@ impl RawFrontMatter<'_> {
 
 /// Split a file between the front matter and its content
 /// Will return an error if the front matter wasn't found
-fn split_content<'c>(file_path: &Path, content: &'c str) -> Result<(RawFrontMatter<'c>, &'c str)> {
+fn split_content<'c>(
+    file_path: &'c Path,
+    content: &'c str,
+) -> Result<(RawFrontMatter<'c>, &'c str)> {
     let (re, is_toml) = if TOML_RE.is_match(content) {
         (&TOML_RE as &Regex, true)
     } else if YAML_RE.is_match(content) {
         (&YAML_RE as &Regex, false)
     } else {
+        // do not return error but, use the file name as title
+        if let Some(title) = file_path.file_stem().map(|n| n.to_str()).flatten() {
+            dbg!(title);
+            return Ok((RawFrontMatter::Markdown { title: title }, content));
+        }
         bail!(
             "Couldn't find front matter in `{}`. Did you forget to add `+++` or `---`?",
             file_path.to_string_lossy()
@@ -73,10 +94,11 @@ fn split_content<'c>(file_path: &Path, content: &'c str) -> Result<(RawFrontMatt
 /// Split a file between the front matter and its content.
 /// Returns a parsed `SectionFrontMatter` and the rest of the content
 pub fn split_section_content<'c>(
-    file_path: &Path,
+    file_path: &'c Path,
     content: &'c str,
 ) -> Result<(SectionFrontMatter, &'c str)> {
     let (front_matter, content) = split_content(file_path, content)?;
+    dbg!(&front_matter);
     let meta = SectionFrontMatter::parse(&front_matter).with_context(|| {
         format!("Error when parsing front matter of section `{}`", file_path.to_string_lossy())
     })?;
@@ -87,10 +109,11 @@ pub fn split_section_content<'c>(
 /// Split a file between the front matter and its content
 /// Returns a parsed `PageFrontMatter` and the rest of the content
 pub fn split_page_content<'c>(
-    file_path: &Path,
+    file_path: &'c Path,
     content: &'c str,
 ) -> Result<(PageFrontMatter, &'c str)> {
     let (front_matter, content) = split_content(file_path, content)?;
+    dbg!(&front_matter);
     let meta = PageFrontMatter::parse(&front_matter).with_context(|| {
         format!("Error when parsing front matter of section `{}`", file_path.to_string_lossy())
     })?;
