@@ -72,6 +72,24 @@ fn insert_many<T>(input: &mut Vec<T>, elem_to_insert: Vec<(usize, T)>) {
     *input = inserted;
 }
 
+/// check the images in the static directory
+fn is_static_images_link(link: &str) -> bool {
+    link.starts_with("static/")
+        || link.starts_with("assets/")
+        || link.starts_with("/static/")
+        || link.starts_with("/assets/")
+}
+
+fn remove_static_prefix(link: &str) -> Option<&str> {
+    if link.starts_with("static/") || link.starts_with("/static/") {
+        link.split("static").nth(1)
+    } else if link.starts_with("assets/") || link.starts_with("/assets/") {
+        link.split("assets").nth(1)
+    } else {
+        Some(link)
+    }
+}
+
 /// Colocated asset links refers to the files in the same directory.
 fn is_colocated_asset_link(link: &str) -> bool {
     !link.starts_with('/')
@@ -589,13 +607,23 @@ pub fn markdown_to_html(
                     events.push(Event::Html("</code></pre>\n".into()));
                 }
                 Event::Start(Tag::Image { link_type, dest_url, title, id }) => {
-                    let link = if is_colocated_asset_link(&dest_url) {
+                    dbg!(&dest_url);
+
+                    let link = if context.config.remove_static_prefix
+                        && is_static_images_link(&dest_url)
+                    {
+                        // means local image link, we don't want to add the permalink prefix
+                        remove_static_prefix(&dest_url).unwrap_or_default().to_owned().into()
+                    } else if is_colocated_asset_link(&dest_url) {
                         let link = format!("{}{}", context.current_page_permalink, &*dest_url);
                         link.into()
                     } else {
                         dest_url
                     };
-                    dbg!("render images, {:?}", &link);
+                    dbg!(&link);
+                    dbg!(&link_type);
+
+
                     events.push(if lazy_async_image {
                         let mut img_before_alt: String = "<img src=\"".to_string();
                         cmark_escape::escape_href(&mut img_before_alt, &link)
@@ -868,6 +896,8 @@ pub fn markdown_to_html(
 
 #[cfg(test)]
 mod tests {
+    use std::iter::zip;
+
     use super::*;
     use config::Config;
     use insta::assert_snapshot;
@@ -1047,11 +1077,12 @@ mod tests {
     }
 
     #[test]
-    fn test_wiki_links(){
+    fn test_wiki_links() {
         let mut opts = Options::empty();
         opts.insert(Options::ENABLE_WIKILINKS);
 
-        let content = "This text has a wiki style links [[example.com]], ![[example.com/image.png]]";
+        let content =
+            "This text has a wiki style links [[example.com]], ![[example.com/image.png]]";
 
         let mut events: Vec<_> = Parser::new_ext(&content, opts).collect();
         let mut html = String::new();
@@ -1059,5 +1090,27 @@ mod tests {
 
         assert!(html.contains("src=\"example.com/image.png\""));
         assert!(html.contains("href=\"example.com\""));
+    }
+
+    #[test]
+    fn test_remove_static_prefix(){
+        let s1 = [
+            "/static/images/1.png",
+            "static/images/2.png",
+            "/assets/images/3.png",
+            "assets/images/4.png",
+            "images/5.png",
+        ];
+        let expect = [
+            "/images/1.png",
+            "/images/2.png",
+            "/images/3.png",
+            "/images/4.png",
+            "images/5.png",
+        ];
+
+        for (input, expect) in zip(s1, expect) {
+            assert_eq!(remove_static_prefix(input).unwrap_or_default(), expect);
+        }
     }
 }

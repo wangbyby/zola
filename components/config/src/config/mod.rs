@@ -111,8 +111,16 @@ pub struct Config {
     pub generate_robots_txt: bool,
     /// Whether to exclude paginated pages in sitemap; can take values "none", "all"
     pub exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap,
-    /// Enables WIKI style links. Like, image `![[https://example.org/example.png]]`, link: `[[https://example.org]]`
+    /// Enables WIKI style links. Defaults to true. Example, image `![[https://example.org/example.png]]`, link: `[[https://example.org]]`
     pub wikilink: bool,
+    /// Remove static prefix in image links. Defaults to true.
+    /// Example: 
+    /// 1. `/static/images/a.png` -> `/images/a.png`. 
+    /// 2. `static/images/a.png` -> `images/a.png`.
+    /// 3. `/assets/images/a.png` -> `images/a.png`.
+    /// 4. `assets/images/a.png` -> `images/a.png`.
+    /// 5. `images/a.png` -> `images/a.png`.
+    pub remove_static_prefix: bool,
 }
 
 #[derive(Serialize)]
@@ -136,6 +144,7 @@ pub struct SerializedConfig<'a> {
     generate_robots_txt: bool,
     exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap,
     wikilink: bool,
+    remove_static_prefix: bool,
 }
 
 impl Config {
@@ -361,6 +370,7 @@ impl Config {
             generate_robots_txt: self.generate_robots_txt,
             exclude_paginated_pages_in_sitemap: self.exclude_paginated_pages_in_sitemap,
             wikilink: self.wikilink,
+            remove_static_prefix: self.remove_static_prefix,
         }
     }
 }
@@ -428,6 +438,7 @@ impl Default for Config {
             generate_robots_txt: true,
             exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap::None,
             wikilink: true,
+            remove_static_prefix: true,
         }
     }
 }
