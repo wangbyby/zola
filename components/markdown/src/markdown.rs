@@ -592,7 +592,7 @@ pub fn markdown_to_html(
                     } else {
                         dest_url
                     };
-
+                    dbg!("render images, {:?}", &link);
                     events.push(if lazy_async_image {
                         let mut img_before_alt: String = "<img src=\"".to_string();
                         cmark_escape::escape_href(&mut img_before_alt, &link)
