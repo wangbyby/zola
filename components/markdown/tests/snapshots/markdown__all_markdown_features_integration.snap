@@ -126,4 +126,6 @@ and multiple paragraphs.</p>
 <div class="footnote-definition" id="second"><sup class="footnote-definition-label">2</sup>
 <p>Footnote text.</p>
 </div>
-
+<h2 id="wiki-style-images-links">Wiki style images, links</h2>
+<p><a href="https://www.getzola.org/test/example.com">example.com</a></p>
+<p><a href="https://www.getzola.org/test/example.com/exmple.jpg">example.com/exmple.jpg</a></p>

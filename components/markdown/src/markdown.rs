@@ -443,6 +443,9 @@ pub fn markdown_to_html(
     if context.config.markdown.definition_list {
         opts.insert(Options::ENABLE_DEFINITION_LIST);
     }
+    if context.config.wikilink {
+        opts.insert(Options::ENABLE_WIKILINKS);
+    }
 
     // we reverse their order so we can pop them easily in order
     let mut html_shortcodes: Vec<_> = html_shortcodes.into_iter().rev().collect();
@@ -1041,5 +1044,20 @@ mod tests {
         let mut html = String::new();
         cmark::html::push_html(&mut html, events.into_iter());
         assert_snapshot!(html);
+    }
+
+    #[test]
+    fn test_wiki_links(){
+        let mut opts = Options::empty();
+        opts.insert(Options::ENABLE_WIKILINKS);
+
+        let content = "This text has a wiki style links [[example.com]], ![[example.com/image.png]]";
+
+        let mut events: Vec<_> = Parser::new_ext(&content, opts).collect();
+        let mut html = String::new();
+        cmark::html::push_html(&mut html, events.into_iter());
+
+        assert!(html.contains("src=\"example.com/image.png\""));
+        assert!(html.contains("href=\"example.com\""));
     }
 }

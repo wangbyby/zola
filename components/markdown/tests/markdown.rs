@@ -406,6 +406,13 @@ Duplicated footnote reference[^second].
 and multiple paragraphs.
 
 [^second]: Footnote text.
+
+## Wiki style images, links
+
+[[example.com]]
+
+[[example.com/exmple.jpg]]
+
     "#,
     )
     .unwrap()

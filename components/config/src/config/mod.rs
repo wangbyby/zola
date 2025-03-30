@@ -111,6 +111,8 @@ pub struct Config {
     pub generate_robots_txt: bool,
     /// Whether to exclude paginated pages in sitemap; can take values "none", "all"
     pub exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap,
+    /// Enables WIKI style links. Like, image `![[https://example.org/example.png]]`, link: `[[https://example.org]]`
+    pub wikilink: bool,
 }
 
 #[derive(Serialize)]
@@ -133,6 +135,7 @@ pub struct SerializedConfig<'a> {
     generate_sitemap: bool,
     generate_robots_txt: bool,
     exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap,
+    wikilink: bool,
 }
 
 impl Config {
@@ -357,6 +360,7 @@ impl Config {
             generate_sitemap: self.generate_sitemap,
             generate_robots_txt: self.generate_robots_txt,
             exclude_paginated_pages_in_sitemap: self.exclude_paginated_pages_in_sitemap,
+            wikilink: self.wikilink,
         }
     }
 }
@@ -423,6 +427,7 @@ impl Default for Config {
             generate_sitemap: true,
             generate_robots_txt: true,
             exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap::None,
+            wikilink: true,
         }
     }
 }
@@ -1090,6 +1095,24 @@ base_url = "example.com"
 "#;
         let config = Config::parse(config).unwrap();
         assert!(config.generate_robots_txt);
+    }
+
+    #[test]
+    fn default_wiki_link_style() {
+        let config = r#"
+        title = "My Site"
+        base_url = "example.com"
+        wikilink = false
+        "#;
+        let config = Config::parse(config).unwrap();
+        assert_eq!(config.wikilink, false);
+
+        let config = r#"
+        title = "My Site"
+        base_url = "example.com"
+        "#;
+        let config = Config::parse(config).unwrap();
+        assert_eq!(config.wikilink, true);
     }
 
     // TODO: add a test for excluding paginated pages
