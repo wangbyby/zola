@@ -5,7 +5,6 @@ use errors::{bail, Context, Result};
 use libs::once_cell::sync::Lazy;
 use libs::regex::Regex;
 use libs::{serde_json, serde_yaml, toml};
-use serde::Serialize;
 
 use crate::front_matter::page::PageFrontMatter;
 use crate::front_matter::section::SectionFrontMatter;
